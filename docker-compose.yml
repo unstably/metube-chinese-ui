@@ -1,0 +1,11 @@
+services:
+  metube-cn:
+    build: .
+    image: metube-cn:latest
+    container_name: metube-cn
+    restart: unless-stopped
+    ports:
+      - "7879:80"
+    volumes:
+      # 挂载 index.html：改界面后刷新页面即可生效，无需重建镜像
+      - ./index.html:/usr/share/nginx/html/index.html:ro
