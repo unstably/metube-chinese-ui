@@ -487,6 +487,8 @@ function refreshOptions(){
   const t = document.getElementById('dtype').value;
   const fs = document.getElementById('format');
   fs.innerHTML = FORMATS[t].map(o => '<option value="'+o[0]+'">'+o[1]+'</option>').join('');
+  // 视频默认统一 MP4（后端再以 merge_output_format 兜底转码），其余类型保持原默认
+  fs.value = (t === 'video') ? 'mp4' : FORMATS[t][0][0];
   document.getElementById('fCodec').style.display = (t === 'video') ? '' : 'none';
   refreshQuality();
 }
@@ -541,15 +543,17 @@ function render(){
   const show=list.slice(0,80);
   if(!show.length){ dbox.innerHTML='<div class="empty">'+(kw?'没有匹配的记录':'暂无记录')+'</div>'; }
   else {
-    dbox.innerHTML='<table><tr><th style="width:52%">名称</th><th>大小</th><th>时间</th><th></th></tr>'+
+    dbox.innerHTML='<table><tr><th style="width:50%">名称</th><th>大小</th><th>格式</th><th>时间</th><th></th></tr>'+
       show.map(it=>{
         const ok=it.status==='finished';
         const cls=ok?'ok':'err';
         const label=STATUS_CN[it.status]?STATUS_CN[it.status][0]:(it.status||'');
+        const ext=it.filename?(it.filename.split('.').pop().toUpperCase()):'';
         const link=it.filename?'<a href="'+API+'/download/'+encodeURIComponent(it.filename)+'" target="_blank" class="t" style="color:var(--main);text-decoration:none">'+esc(it.title||it.filename)+'</a>':esc(it.title||it.url);
         return '<tr><td class="title-cell c-title">'+link+
           '<span class="sub"><span class="st '+cls+'">'+esc(label)+'</span> '+esc(it.error||it.msg||'')+'</span></td>'+
           '<td data-label="大小"><span class="sub">'+esc(fmtSize(it.size))+'</span></td>'+
+          '<td data-label="格式"><span class="st '+(ext?'down':'wait')+'">'+esc(ext||'—')+'</span></td>'+
           '<td data-label="时间"><span class="sub">'+fmtTime(it.timestamp)+'</span></td>'+
           '<td class="c-act">'+(ok?'':'<button class="ghost sm" data-act="retry" data-id="'+esc(it.id)+'">重试</button> ')+
           '<button class="danger sm" data-act="clear" data-id="'+esc(it.id)+'">删除</button></td></tr>';

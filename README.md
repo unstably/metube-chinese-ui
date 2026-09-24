@@ -5,12 +5,24 @@
 给 [MeTube](https://github.com/alexta69/metube)（alexta69/metube）套一层中文操作界面。
 MeTube 官方没有多语言支持（只有明暗主题），本项目通过它的 HTTP API 与 socket.io 实时接口，另做一个纯前端页面，部署在 nginx 容器里，与 MeTube 并存、互不干扰。
 
+## 界面预览
+
+| 桌面端 · 深色 | 桌面端 · 浅色 |
+|---|---|
+| <img src="docs/screenshots/desktop-dark.jpg" alt="桌面端深色主题"> | <img src="docs/screenshots/desktop-light.jpg" alt="桌面端浅色主题"> |
+
+| 高级选项 | 移动端 |
+|---|---|
+| <img src="docs/screenshots/advanced-options.jpg" alt="高级选项"> | <img src="docs/screenshots/mobile-dark.jpg" alt="移动端" width="360"> |
+
 ## 界面特性
 
 - **全中文**：添加下载、Cookies、订阅、队列、已完成，全部中文化
+- **默认 MP4**：视频格式默认 MP4，后端再以 `merge_output_format` 兜底——即使源流是 WebM/MKV 等其他容器，下载完也会自动 remux 成 MP4（不重编码，几乎不耗时）
 - **玻璃拟态 + 暗黑主题**：右上角按钮切换，选择记在浏览器本地，首次跟随系统深浅色偏好
 - **移动端适配**：≤720px 时表格自动转卡片，输入框 16px 防 iOS 缩放，按钮全宽
 - **实时进度**：socket.io 推送，进度条 + 百分比 + 速度 + 剩余时间，完成后自动移到「已完成」
+- **已完成显示格式**：列表直接标出每个文件的实际格式（MP4 / M4A / MP3…），一眼看清下了什么
 - **批量添加**：一次粘贴多行链接
 - **Cookies 上传**：页面上直接上传 / 拖拽 cookies.txt，凭证失效时不必再进服务器找目录
 - **订阅**：频道或播放列表订阅，支持检查间隔、标题正则过滤、跳过会员专属、暂停/启用/立即检查
@@ -76,6 +88,7 @@ curl -I -H "Origin: http://192.168.1.100:7879" http://192.168.1.100:7878/history
 ├── Dockerfile
 ├── nginx.conf          # gzip + 不缓存
 ├── docker-compose.yml
+├── docs/screenshots/   # README 界面截图
 └── README.md
 ```
 
