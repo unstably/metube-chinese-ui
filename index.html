@@ -94,6 +94,7 @@ h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.3px}
 
 .card h2{font-size:15px;margin:0 0 12px;font-weight:650;display:flex;align-items:center;gap:8px}
 .badge{background:var(--main-soft);color:var(--main);border-radius:10px;padding:1px 9px;font-size:12px;font-weight:600}
+.sum{font-size:12px;color:var(--muted);font-weight:500;display:flex;gap:6px;flex-wrap:wrap;margin-left:2px}
 
 textarea,select,input[type=text],input[type=number]{
   width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:11px;
@@ -383,7 +384,7 @@ footer a{color:var(--main);text-decoration:none}
 
   <!-- ========== 已完成 ========== -->
   <div class="card">
-    <h2>已完成 <span class="badge" id="dCount">0</span></h2>
+    <h2>已完成 <span class="badge" id="dCount">0</span><span class="sum" id="dSum"></span></h2>
     <div class="toolbar">
       <input type="text" id="search" placeholder="搜索标题…" style="max-width:220px">
       <span class="sp"></span>
@@ -540,6 +541,9 @@ function render(){
   let list=state.done.slice().sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
   if(kw) list=list.filter(it=>((it.title||'')+(it.filename||'')).toLowerCase().includes(kw));
   document.getElementById('dCount').textContent=state.done.length;
+  const okN=state.done.filter(i=>i.status==='finished').length;
+  const erN=state.done.filter(i=>i.status==='error').length;
+  document.getElementById('dSum').innerHTML='<span class="st ok">已完成 '+okN+'</span> <span class="st err">失败 '+erN+'</span>';
   const show=list.slice(0,80);
   if(!show.length){ dbox.innerHTML='<div class="empty">'+(kw?'没有匹配的记录':'暂无记录')+'</div>'; }
   else {
@@ -644,21 +648,44 @@ document.getElementById('addBtn').addEventListener('click', async ()=>{
 
 document.getElementById('search').addEventListener('input', render);
 
+/* 已完成管理：本地先乐观更新立即反馈，再请求后端；异常回滚并提示 */
 document.getElementById('clearDone').addEventListener('click', async ()=>{
   const ids=state.done.map(i=>i.id); if(!ids.length) return;
   if(!confirm('确定清空全部 '+ids.length+' 条已完成记录？（只清除列表，不删除已下载的文件）')) return;
-  await post('/delete',{ids:ids,where:'done'});
+  const snapshot=state.done.slice();
+  state.done=[]; render();
+  try{
+    await post('/delete',{ids:ids,where:'done'});
+    showMsg('已清空 '+ids.length+' 条记录',true);
+  }catch(err){
+    showMsg('清空失败：'+err,false);
+    state.done=snapshot; render();
+  }
 });
 document.getElementById('clearFailed').addEventListener('click', async ()=>{
-  const ids=state.done.filter(i=>i.status==='error').map(i=>i.id);
-  if(!ids.length){ showMsg('没有失败记录',true); return; }
-  await post('/delete',{ids:ids,where:'done'});
+  const failed=state.done.filter(i=>i.status==='error');
+  if(!failed.length){ showMsg('没有失败记录',true); return; }
+  const ids=failed.map(i=>i.id);
+  // 乐观移除：立即从界面消失
+  state.done=state.done.filter(i=>i.status!=='error'); render();
+  try{
+    await post('/delete',{ids:ids,where:'done'});
+    showMsg('已清除 '+ids.length+' 条失败记录',true);
+  }catch(err){
+    showMsg('清除失败：'+err,false);
+    loadHistory(); // 回滚：重新拉取真实状态
+  }
 });
 document.getElementById('retryFailed').addEventListener('click', async ()=>{
   const failed=state.done.filter(i=>i.status==='error');
   if(!failed.length){ showMsg('没有失败记录',true); return; }
-  for(const it of failed){ try{ await post('/retry',{id:it.id}); }catch(e){} }
-  showMsg('已提交 '+failed.length+' 个重试',true);
+  // 乐观移除失败项，它们会经 socket 以「正在下载」重新出现
+  const ids=failed.map(i=>i.id);
+  state.done=state.done.filter(i=>i.status!=='error'); render();
+  let ok=0;
+  for(const it of failed){ try{ await post('/retry',{id:it.id}); ok++; }catch(e){} }
+  showMsg(ok?('已提交 '+ok+' 个重试'):'重试提交失败', !!ok);
+  if(ok<failed.length) loadHistory();
 });
 
 /* 订阅 */
