@@ -1,3 +1,5 @@
+本项目纯AI生成，目的仅自用，如使用不当本人概不负责。
+
 # MeTube 中文前端（metube-cn）
 
 给 [MeTube](https://github.com/alexta69/metube)（alexta69/metube）套一层中文操作界面。
