@@ -1,8 +1,14 @@
 FROM nginx:alpine
 
-# 站点配置：开启 gzip，静态文件不缓存（改完 index.html 刷新即可生效）
+# MeTube 后端地址（构建时可覆盖）：
+#   同一 docker 网络 -> metube:8081
+#   走宿主机端口     -> host.docker.internal:7878
+ARG METUBE_BACKEND=metube:8081
+
+COPY dist/ /usr/share/nginx/html/
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY index.html socket.io.min.js /usr/share/nginx/html/
+
+RUN sed -i "s|__BACKEND__|${METUBE_BACKEND}|g" /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

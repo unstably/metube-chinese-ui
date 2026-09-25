@@ -1,11 +1,22 @@
 services:
   metube-cn:
-    build: .
+    build:
+      context: .
+      args:
+        # MeTube 后端地址：同一 docker 网络写 "metube:8081"；
+        # 走宿主机端口写 "host.docker.internal:7878"（Linux 再加下面的 extra_hosts）
+        METUBE_BACKEND: metube:8081
     image: metube-cn:latest
     container_name: metube-cn
     restart: unless-stopped
     ports:
       - "7879:80"
-    volumes:
-      # 挂载 index.html：改界面后刷新页面即可生效，无需重建镜像
-      - ./index.html:/usr/share/nginx/html/index.html:ro
+    networks:
+      # 与 MeTube 同网络才能用容器名互访；不存在的话改成 MeTube 实际所在网络
+      - metube_default
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+
+networks:
+  metube_default:
+    external: true
